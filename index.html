@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browser Side-Channel Simulator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Educational &amp; Safe</p>
+      <h1>Browser-Based Side-Channel Attack Simulator</h1>
+      <p class="lede">Toy Spectre/Meltdown-style behaviors with artificial timings, mock caches, and defence toggles.</p>
+      <div class="cta-row">
+        <button id="run-baseline" class="primary">Run baseline</button>
+        <button id="run-defended" class="secondary">Run defended</button>
+      </div>
+    </div>
+    <div class="status-card">
+      <h2>Simulation status</h2>
+      <p id="status-text">Idle. Choose a scenario to start.</p>
+      <div class="log" id="event-log" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel">
+      <div class="panel-header">
+        <h3>Controls</h3>
+        <p>Toggle safe mitigation strategies.</p>
+      </div>
+      <div class="controls">
+        <label><input type="checkbox" id="toggle-constant" checked /> Constant-time execution</label>
+        <label><input type="checkbox" id="toggle-jitter" checked /> Add jitter</label>
+        <label><input type="checkbox" id="toggle-fence" checked /> Memory fence</label>
+        <label><input type="checkbox" id="toggle-clamp" checked /> Clamp timers</label>
+        <label><input type="checkbox" id="toggle-detect" checked /> Detection heuristic</label>
+      </div>
+      <div class="hint">All toggles keep the simulator non-exploitable.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h3>Pipeline visualiser</h3>
+        <p>Fetch → Decode → Execute → Retire with speculative paths highlighted.</p>
+      </div>
+      <div id="pipeline" class="pipeline" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h3>Cache model</h3>
+        <p>L1 and L2 toy caches with hits and misses.</p>
+      </div>
+      <div id="cache-view" class="cache-view"></div>
+    </section>
+
+    <section class="panel timing">
+      <div class="panel-header">
+        <h3>Timing breakdown</h3>
+        <p>Artificial timings only; no real measurement APIs.</p>
+      </div>
+      <div id="timing-chart" class="timing-chart"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Educational simulator only. All timings and memory references are synthetic.</p>
+  </footer>
+
+  <script type="module">
+    import { AttackSimulator, ATTACK_PATTERNS } from './js/attack.js';
+    import { DefenceToolkit } from './js/defence.js';
+    import { Visualiser } from './js/visualiser.js';
+
+    const statusText = document.getElementById('status-text');
+    const logEl = document.getElementById('event-log');
+    const visualiser = new Visualiser({
+      pipelineEl: document.getElementById('pipeline'),
+      cacheEl: document.getElementById('cache-view'),
+      timingEl: document.getElementById('timing-chart'),
+      logEl,
+    });
+
+    const defence = new DefenceToolkit();
+    const simulator = new AttackSimulator({ visualiser, defence });
+
+    const applyToggle = (id, setter) => {
+      const el = document.getElementById(id);
+      setter(el.checked);
+      el.addEventListener('change', () => setter(el.checked));
+    };
+
+    applyToggle('toggle-constant', (v) => defence.setConstantTime(v));
+    applyToggle('toggle-jitter', (v) => defence.setJitter(v));
+    applyToggle('toggle-fence', (v) => defence.setFence(v));
+    applyToggle('toggle-clamp', (v) => defence.setClampTimers(v));
+    applyToggle('toggle-detect', (v) => defence.setDetection(v));
+
+    const runScenario = async (pattern, defended) => {
+      try {
+        statusText.textContent = defended ? 'Running defended scenario…' : 'Running baseline scenario…';
+        const result = await simulator.run(pattern, defended);
+        statusText.textContent = `Completed: ${result.summary}`;
+        visualiser.log(`Pattern: ${pattern.name} | ${result.summary}`);
+      } catch (error) {
+        console.error('Simulation failed', error);
+        statusText.textContent = 'Simulation failed. See console for details.';
+        visualiser.log('Simulation failed; check console for details.');
+      }
+    };
+
+    document.getElementById('run-baseline').addEventListener('click', () =>
+      runScenario(ATTACK_PATTERNS.branchTrain, false)
+    );
+
+    document.getElementById('run-defended').addEventListener('click', () =>
+      runScenario(ATTACK_PATTERNS.branchTrain, true)
+    );
+  </script>
+</body>
+</html>
