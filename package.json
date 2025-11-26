@@ -1,0 +1,32 @@
+{
+  "name": "browser-side-channel-simulator",
+  "version": "1.0.0",
+  "description": "Safe, educational Spectre/Meltdown-style side-channel attack simulator for browsers.",
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "npx prettier --write .",
+    "format:check": "npx prettier --check .",
+    "check": "npm run lint && npm test"
+  },
+  "keywords": [
+    "security",
+    "spectre",
+    "meltdown",
+    "browser",
+    "education",
+    "simulator"
+  ],
+  "author": "Browser Security Lab",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "eslint": "9.39.1",
+    "prettier": "3.3.3"
+  }
+}
